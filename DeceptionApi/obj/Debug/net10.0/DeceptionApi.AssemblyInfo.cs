@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("DeceptionApi")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+7215f4cb88c8a865e41fce8d1438f4e1dfd69831")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+eedb45084deff5067da9fea6f57e43e60dfc3f81")]
 [assembly: System.Reflection.AssemblyProductAttribute("DeceptionApi")]
 [assembly: System.Reflection.AssemblyTitleAttribute("DeceptionApi")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
