@@ -9,6 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<GameService>();
+builder.Services.AddControllers();
 
 var app = builder.Build();
 
@@ -29,5 +30,7 @@ app.MapGet("/startgame", (GameService service) =>
     service.StartGame();
     return "Command received: Game has started.";
 });
+
+app.MapControllers();
 
 app.Run();
