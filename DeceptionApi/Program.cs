@@ -9,6 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<GameService>();
+builder.Services.AddSingleton<RoomService>();
 builder.Services.AddControllers();
 
 var app = builder.Build();
@@ -22,14 +23,6 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.MapHub<GameHub>("/gamehub");
-
-app.MapGet("/gamestate", (GameService service) => service.GetCurrentState());
-
-app.MapGet("/startgame", (GameService service) => 
-{
-    service.StartGame();
-    return "Command received: Game has started.";
-});
 
 app.MapControllers();
 

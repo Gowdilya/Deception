@@ -1,0 +1,47 @@
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace DeceptionApi.Services;
+
+public class Room
+{
+    public string Code { get; set; } = string.Empty;
+    public List<string> Players { get; set; } = new();
+}
+
+public class RoomService
+{
+    private readonly ConcurrentDictionary<string, Room> _rooms = new();
+
+    public Room? GetRoom(string code)
+    {
+        _rooms.TryGetValue(code, out var room);
+        return room;
+    }
+
+    public string CreateRoom(string hostName)
+    {
+        var code = Guid.NewGuid().ToString("N").Substring(0, 6).ToUpper();
+        var room = new Room
+        {
+            Code = code,
+            Players = new List<string> { hostName }
+        };
+        _rooms.TryAdd(code, room);
+        return code;
+    }
+
+    public bool JoinRoom(string code, string playerName)
+    {
+        var room = GetRoom(code);
+        if (room == null) return false;
+
+        lock (room.Players)
+        {
+            room.Players.Add(playerName);
+        }
+        return true;
+    }
+}
