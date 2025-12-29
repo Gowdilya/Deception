@@ -9,6 +9,7 @@ public class Room
 {
     public string Code { get; set; } = string.Empty;
     public List<string> Players { get; set; } = new();
+    public bool IsStarted { get; set; }
 }
 
 public class RoomService
@@ -43,5 +44,18 @@ public class RoomService
             room.Players.Add(playerName);
         }
         return true;
+    }
+
+    public bool StartGame(string code)
+    {
+        var room = GetRoom(code);
+        if (room == null) return false;
+
+        lock (room.Players)
+        {
+            if (room.Players.Count < 4 || room.IsStarted) return false;
+            room.IsStarted = true;
+            return true;
+        }
     }
 }

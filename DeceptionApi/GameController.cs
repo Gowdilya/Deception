@@ -14,6 +14,11 @@ public class JoinRequest
     public string Name { get; set; } = string.Empty;
 }
 
+public class StartGameRequest
+{
+    public string Code { get; set; } = string.Empty;
+}
+
 [ApiController]
 [Route("api/[controller]")]
 public class GameController : ControllerBase
@@ -46,5 +51,13 @@ public class GameController : ControllerBase
         var success = _roomService.JoinRoom(request.Code, request.Name);
         if (!success) return NotFound("Room not found");
         return Ok(new { Message = "Joined" });
+    }
+
+    [HttpPost("start")]
+    public IActionResult StartGame([FromBody] StartGameRequest request)
+    {
+        var success = _roomService.StartGame(request.Code);
+        if (!success) return BadRequest("Game could not be started. Check player count or if game has already started.");
+        return Ok(new { Message = "Game started" });
     }
 }

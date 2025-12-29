@@ -14,23 +14,35 @@ export const ApiExample = () => {
   const [roomData, setRoomData] = useState<Room | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isJoining, setIsJoining] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
     if (!joinedRoom) return
 
-    // Poll for room updates every 2 seconds
-    const interval = setInterval(() => {
+    const fetchRoomData = () => {
+      setIsLoading(true)
       fetch(`/api/game/${joinedRoom}`)
-        .then((res) => res.json())
+        .then((res) => {
+          if (!res.ok) throw new Error('Room not found')
+          return res.json()
+        })
         .then((data) => setRoomData(data))
-        .catch((err) => console.error(err))
-    }, 2000)
+        .catch((err) => {
+          setError(err.message)
+          setJoinedRoom(null) // room is invalid
+        })
+        .finally(() => setIsLoading(false))
+    }
+
+    fetchRoomData() // initial fetch
+    const interval = setInterval(fetchRoomData, 2000)
 
     return () => clearInterval(interval)
   }, [joinedRoom])
 
   const createRoom = () => {
     if (!name) return alert('Enter name')
+    setIsLoading(true)
     fetch('/api/game/create', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -46,10 +58,12 @@ export const ApiExample = () => {
         setError(null)
       })
       .catch((err) => setError(err.message))
+      .finally(() => setIsLoading(false))
   }
 
   const joinRoom = () => {
     if (!name || !roomCode) return alert('Enter name and code')
+    setIsLoading(true)
     fetch('/api/game/join', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -61,15 +75,46 @@ export const ApiExample = () => {
         setError(null)
       })
       .catch((err) => setError(err.message))
+      .finally(() => setIsLoading(false))
+  }
+
+  const startGame = () => {
+    if (!joinedRoom) return
+    setIsLoading(true)
+    fetch('/api/game/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: joinedRoom }),
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const errorData = await res.json()
+          throw new Error(errorData.message || 'Failed to start game')
+        }
+        // The useEffect polling will update the game state
+      })
+      .catch((err) => setError(err.message))
+      .finally(() => setIsLoading(false))
+  }
+
+  if (isLoading && !roomData) {
+    return (
+      <div className="game-container fade-in">
+        <div className="game-card">Loading...</div>
+      </div>
+    )
   }
 
   if (joinedRoom) {
+    const isHost = roomData?.players[0] === name;
+
     return (
       <div className="game-container fade-in">
         <div className="game-header">
           <h1 className="game-title">Deception</h1>
         </div>
         <div className="game-card">
+          {error && <div className="error-msg">{error}</div>}
           <h2 style={{ fontSize: '2rem', margin: '0 0 1.5rem 0', color: 'white' }}>Lobby</h2>
           
           <div className="room-code-display">
@@ -77,14 +122,35 @@ export const ApiExample = () => {
             <div className="code-value">{joinedRoom}</div>
           </div>
 
-          <div className="label">Players Joined</div>
-          <ul className="player-list">
-            {roomData?.players.map((p) => (
-              <li key={p} className="player-item">{p}</li>
-            ))}
-          </ul>
+          {roomData?.isStarted ? (
+            <div className="label">Game has started!</div>
+          ) : (
+            <>
+              <div className="label">Players Joined ({roomData?.players.length ?? 0})</div>
+              <ul className="player-list">
+                {roomData?.players.map((p) => (
+                  <li key={p} className="player-item">{p}</li>
+                ))}
+              </ul>
 
-          <div className="label">Waiting for host to start...</div>
+              {isHost ? (
+                <button 
+                  className="btn btn-start" 
+                  onClick={startGame}
+                  disabled={(roomData?.players.length ?? 0) < 4}
+                >
+                  Start Game
+                </button>
+              ) : (
+                <div className="label">Waiting for host to start...</div>
+              )}
+              {(roomData?.players.length ?? 0) < 4 && isHost && (
+                <div className="label" style={{marginTop: '1rem', fontSize: '0.9rem'}}>
+                  Need at least 4 players to start.
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
     )
