@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using DeceptionApi.Services;
 
 namespace DeceptionApi.Controllers;
@@ -24,17 +25,40 @@ public class StartGameRequest
 public class GameController : ControllerBase
 {
     private readonly RoomService _roomService;
+    private readonly Microsoft.AspNetCore.SignalR.IHubContext<DeceptionApi.Hubs.GameHub> _hub;
+    private readonly Microsoft.Extensions.Logging.ILogger<GameController> _logger;
 
-    public GameController(RoomService roomService)
+    public GameController(RoomService roomService, Microsoft.AspNetCore.SignalR.IHubContext<DeceptionApi.Hubs.GameHub> hub, Microsoft.Extensions.Logging.ILogger<GameController> logger)
     {
         _roomService = roomService;
+        _hub = hub;
+        _logger = logger;
     }
 
     [HttpGet("{code}")]
     public IActionResult GetRoom(string code)
     {
         var room = _roomService.GetRoom(code);
-        if (room == null) return NotFound();
+        if (room == null)
+        {
+            _logger.LogInformation("GetRoom: room {Code} not found", code);
+            return NotFound();
+        }
+
+        _logger.LogInformation("GetRoom: room {Code} players: {Players}", code, string.Join(',', room.Players));
+        return Ok(room);
+    }
+
+    [HttpGet("/api/debug/room/{code}")]
+    public IActionResult DebugRoom(string code)
+    {
+        var room = _roomService.GetRoom(code);
+        if (room == null)
+        {
+            _logger.LogInformation("DebugRoom: room {Code} not found", code);
+            return NotFound();
+        }
+        _logger.LogInformation("DebugRoom dump for {Code}: {@Room}", code, room);
         return Ok(room);
     }
 
@@ -48,16 +72,21 @@ public class GameController : ControllerBase
     [HttpPost("join")]
     public IActionResult JoinRoom([FromBody] JoinRequest request)
     {
-        var success = _roomService.JoinRoom(request.Code, request.Name);
-        if (!success) return NotFound("Room not found");
-        return Ok(new { Message = "Joined" });
+        // Hub-only join: clients should invoke the SignalR hub method `JoinRoom` to join and receive broadcasts.
+        // Keep this endpoint for compatibility, but do not update server state here to avoid duplicate broadcasts.
+        return BadRequest(new { Message = "Please join via SignalR hub by invoking 'JoinRoom'." });
     }
 
     [HttpPost("start")]
-    public IActionResult StartGame([FromBody] StartGameRequest request)
+    public async Task<IActionResult> StartGame([FromBody] StartGameRequest request)
     {
         var success = _roomService.StartGame(request.Code);
         if (!success) return BadRequest("Game could not be started. Check player count or if game has already started.");
+
+        var room = _roomService.GetRoom(request.Code);
+        var payload = new { Code = request.Code, Players = room?.Players };
+        await _hub.Clients.Group(request.Code).SendAsync("GameStarted", payload);
+
         return Ok(new { Message = "Game started" });
     }
 }

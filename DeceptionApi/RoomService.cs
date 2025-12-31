@@ -19,7 +19,14 @@ public class RoomService
     public Room? GetRoom(string code)
     {
         _rooms.TryGetValue(code, out var room);
-        return room;
+        if (room == null) return null;
+        // Return a snapshot copy to avoid callers mutating internal state and to provide a consistent view.
+        return new Room
+        {
+            Code = room.Code,
+            Players = room.Players.ToList(),
+            IsStarted = room.IsStarted
+        };
     }
 
     public string CreateRoom(string hostName)
@@ -38,10 +45,15 @@ public class RoomService
     {
         var room = GetRoom(code);
         if (room == null) return false;
+        // Use the internal dictionary's room instance for modification so changes persist.
+        if (!_rooms.TryGetValue(code, out var internalRoom)) return false;
 
-        lock (room.Players)
+        lock (internalRoom)
         {
-            room.Players.Add(playerName);
+            if (!internalRoom.Players.Contains(playerName))
+            {
+                internalRoom.Players.Add(playerName);
+            }
         }
         return true;
     }

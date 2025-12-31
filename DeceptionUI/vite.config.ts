@@ -10,6 +10,11 @@ export default defineConfig({
         target: 'http://localhost:5069',
         changeOrigin: true,
       },
+      '/gamehub': {
+        target: 'http://localhost:5069',
+        changeOrigin: true,
+        ws: true,
+      },
     },
   },
 })
