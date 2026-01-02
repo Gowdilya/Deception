@@ -169,7 +169,24 @@ export const ApiExample = () => {
           </div>
 
           {roomData?.isStarted ? (
-            <div className="label">Game has started!</div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ marginBottom: '2rem' }}>
+                <h3 className="label">You are</h3>
+                <div className="player-item" style={{ borderColor: 'var(--primary)', fontWeight: 'bold' }}>{name}</div>
+              </div>
+              <div>
+                <h3 className="label">Other Players</h3>
+                <ul className="player-list" style={{ margin: 0 }}>
+                  {roomData.players
+                    .filter((p) => p !== name)
+                    .map((p, i) => (
+                      <li key={`${p}-${i}`} className="player-item" style={{ background: '#2a2a2a', borderColor: '#555' }}>
+                        {p}
+                      </li>
+                    ))}
+                </ul>
+              </div>
+            </div>
           ) : (
             <>
               <div className="label">Players Joined ({roomData?.players.length ?? 0})</div>
